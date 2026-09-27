@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IT Operations Hub</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+<!-- Optional: only used by the Active Directory / Printer / Toner import panels to read .xlsx uploads. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  // Backend base URL (see ../backend). Defaults to the local dev server
+  // from backend/README.md - point this at a real deployment as needed.
+  window.IT_OPS_HUB_API_BASE = '/api';
+</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">IT</div>
+      <div class="brand-text"><b>IT Operations Hub</b><span>Sample Company &middot; Internal</span></div>
+    </div>
+    <nav class="navlist" id="navlist"></nav>
+    <div class="nav-group-label">Security</div>
+    <a href="audit.html" style="display:flex;align-items:center;gap:8px;padding:8px 12px;color:var(--text);text-decoration:none;border-radius:8px;font-size:13px;">
+      <span class="navicon">&#128220;</span>Audit Log
+    </a>
+    <button class="sidebar-foot active-mode" id="sidebarMode" style="text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;" title="Jump to data-source details in Reports">
+      <span style="font-size:14px;">&#9432;</span><span id="sidebarModeText">No Data</span>
+    </button>
+    <div class="sidebar-foot">Signed in as<br><b id="sidebarUser" style="color:var(--text)"></b></div>
+    <button id="logoutBtn" class="sidebar-foot" style="text-align:left;cursor:pointer;width:100%;border:none;background:transparent;color:var(--text);display:flex;align-items:center;gap:8px;">
+      <span>&#8630;</span><span>Sign Out</span>
+    </button>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="topbarTitle" class="grad-text">IT Operations Dashboard</h1>
+        <div class="sub" id="topbarSub">Unified view of directory, network, print and inventory health</div>
+      </div>
+      <div class="legend">
+        <span><i class="dot ok"></i>Healthy</span>
+        <span><i class="dot warn"></i>Warning</span>
+        <span><i class="dot crit"></i>Critical</span>
+        <span><i class="dot unknown"></i>Unknown</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-badges">
+        <span class="modebadge"><span class="ic">&#8505;</span><span id="modeBadgeText">No Data</span></span>
+        <button class="theme-toggle" id="themeToggleBtn" title="Toggle theme"><span id="themeToggleIcon">&#127769;</span><span id="themeToggleLabel">Dark Mode</span></button>
+        <button class="iconbtn" id="refreshBtn" title="Refresh view">&#8635;</button>
+        <span class="timebadge">Updated: <b id="updatedTime">&mdash;</b></span>
+        <div class="avatar-circle" id="topbarAvatar" title=""></div>
+      </div>
+    </div>
+    <div class="content"><div class="view" id="view"></div></div>
+  </div>
+</div>
+<div id="modal-root" hidden></div>
+
+<script>
+  window.IT_OPS_HUB_API_BASE = '/api';
+</script>
+<script>
+  // Auth Guard — check session BEFORE loading the app.
+  // If not authenticated, redirect to login immediately.
+  // Auth requirement disabled for this deployment — team decided to
+  // open the dashboard directly without sign-in. The login/session/
+  // audit-log code (login.html, auth.routes.ps1, AuditLog.Service.psm1)
+  // is kept in the repo rather than deleted, for reuse in a separate
+  // personal project.
+  document.getElementById('sidebarUser').textContent = 'IT Team';
+
+  async function doLogout(){
+    try {
+      await fetch(window.IT_OPS_HUB_API_BASE + '/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) { /* ignore network errors on logout */ }
+    sessionStorage.removeItem('ithub_user');
+    window.location.href = 'login.html';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', doLogout);
+    }
+  });
+
+  // ===== Idle Session Timeout =====
+  // Warns the user after IDLE_WARNING_MS of no activity, then auto-logs
+  // out after IDLE_LOGOUT_MS if they still haven't interacted. This
+  // protects shared/unattended machines from being left logged in.
+  const IDLE_WARNING_MS = 5 * 60 * 1000;   // 5 minutes -> show warning
+  const IDLE_LOGOUT_MS  = 6 * 60 * 1000;   // 6 minutes -> auto logout
+
+  let idleWarningTimer = null;
+  let idleLogoutTimer = null;
+  let warningShown = false;
+
+  function resetIdleTimers(){
+    clearTimeout(idleWarningTimer);
+    clearTimeout(idleLogoutTimer);
+    if (warningShown) {
+      hideIdleWarning();
+    }
+    idleWarningTimer = setTimeout(showIdleWarning, IDLE_WARNING_MS);
+    idleLogoutTimer = setTimeout(doLogout, IDLE_LOGOUT_MS);
+  }
+
+  function showIdleWarning(){
+    warningShown = true;
+    let overlay = document.getElementById('idleWarningOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'idleWarningOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+      overlay.innerHTML = `
+        <div style="background:#171a23;border:1px solid #3a3f4d;border-radius:14px;padding:32px 36px;max-width:380px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.5);">
+          <div style="font-size:34px;margin-bottom:12px;">&#9200;</div>
+          <div style="color:#fff;font-size:17px;font-weight:600;margin-bottom:8px;">Still there?</div>
+          <div style="color:#b0b4c0;font-size:14px;line-height:1.5;margin-bottom:20px;">
+            You've been inactive for a while. For your security, you'll be signed out automatically in a moment.
+          </div>
+          <button id="idleStayBtn" style="width:100%;padding:11px;border:none;border-radius:8px;background:#4f7cff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">
+            Stay Signed In
+          </button>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('idleStayBtn').addEventListener('click', resetIdleTimers);
+    }
+    overlay.style.display = 'flex';
+  }
+
+  function hideIdleWarning(){
+    warningShown = false;
+    const overlay = document.getElementById('idleWarningOverlay');
+    if (overlay) { overlay.style.display = 'none'; }
+  }
+
+  // Any of these user actions counts as "activity" and resets the timers
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(evt => {
+    document.addEventListener(evt, resetIdleTimers, { passive: true });
+  });
+
+  // Start the idle timers once the page loads
+  resetIdleTimers();
+</script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+/*
+  Design tokens for the IT Operations Hub.
+  Light palette lives on the bare :root; dark values are redefined twice so that
+  both "system: dark" (prefers-color-scheme) and an explicit data-theme="dark"
+  toggle resolve correctly, and an explicit data-theme="light" always wins over OS dark mode.
+*/
+:root{
+  --bg:#f5f3fb;
+  --page-gradient:linear-gradient(160deg,#f6f3ff 0%,#eef1ff 45%,#ecfdf9 100%);
+  --surface:#ffffff; --surface-2:#f7f5fd; --surface-3:#efe9fb;
+  --border:#e2dbf5; --text:#1e1b2e; --text-muted:#655f7d; --text-faint:#948eae;
+  --accent:#7c3aed; --accent-soft:#f0e8fd; --accent-2:#0d9488;
+  --brand-1:#8b5cf6; --brand-2:#14b8a6; --brand-gradient:linear-gradient(135deg,var(--brand-1),var(--brand-2));
+  --ok:#1a9d55; --ok-soft:#e3f6ea; --warn:#a6740a; --warn-soft:#fdf1d6;
+  --crit:#c92c40; --crit-soft:#fbe3e7; --unknown:#6b7486; --unknown-soft:#e7e9ee;
+  --live:#0d9488; --live-soft:#d9f5f1;
+  --ic-pink:#ec4899; --ic-blue:#3b82f6; --ic-green:#10b981; --ic-orange:#f97316;
+  --ic-violet:#8b5cf6; --ic-cyan:#06b6d4; --ic-amber:#f59e0b; --ic-rose:#f43f5e;
+  --shadow:0 1px 2px rgba(30,20,60,.05),0 10px 28px -14px rgba(60,40,120,.20);
+  --radius:14px; --sidebar-w:232px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#100e1b; --page-gradient:linear-gradient(160deg,#160f2c 0%,#12162a 50%,#0b1c1e 100%);
+    --surface:#1a1730; --surface-2:#211d3c; --surface-3:#2a2549;
+    --border:#332c56; --text:#efeaff; --text-muted:#a89fcb; --text-faint:#726a96;
+    --accent:#a78bfa; --accent-soft:#2b2154; --accent-2:#2dd4bf;
+    --brand-1:#a78bfa; --brand-2:#2dd4bf; --brand-gradient:linear-gradient(135deg,var(--brand-1),var(--brand-2));
+    --ok:#3ecf7e; --ok-soft:#123424; --warn:#e0b23a; --warn-soft:#3a2f10;
+    --crit:#f0576c; --crit-soft:#3a1520; --unknown:#8b95a8; --unknown-soft:#242038;
+    --live:#2dd4bf; --live-soft:#123430;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px -14px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#100e1b; --page-gradient:linear-gradient(160deg,#160f2c 0%,#12162a 50%,#0b1c1e 100%);
+  --surface:#1a1730; --surface-2:#211d3c; --surface-3:#2a2549;
+  --border:#332c56; --text:#efeaff; --text-muted:#a89fcb; --text-faint:#726a96;
+  --accent:#a78bfa; --accent-soft:#2b2154; --accent-2:#2dd4bf;
+  --brand-1:#a78bfa; --brand-2:#2dd4bf; --brand-gradient:linear-gradient(135deg,var(--brand-1),var(--brand-2));
+  --ok:#3ecf7e; --ok-soft:#123424; --warn:#e0b23a; --warn-soft:#3a2f10;
+  --crit:#f0576c; --crit-soft:#3a1520; --unknown:#8b95a8; --unknown-soft:#242038;
+  --live:#2dd4bf; --live-soft:#123430;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 30px -14px rgba(0,0,0,.6);
+  color-scheme:dark;
+}

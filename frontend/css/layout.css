@@ -1,0 +1,60 @@
+/* Structural layout: app shell, sidebar, topbar, content grid, responsive rules. */
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0;background:var(--page-gradient);color:var(--text);font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,sans-serif;font-size:14px;line-height:1.5;}
+code,.mono,input,select,textarea,button{font-family:'IBM Plex Mono','IBM Plex Sans',monospace;}
+h1,h2,h3,h4{font-family:'IBM Plex Sans',sans-serif;text-wrap:balance;margin:0;}
+a{color:var(--accent);}
+button{cursor:pointer;font-size:13px;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+[hidden]{display:none!important;}
+::placeholder{color:var(--text-faint);}
+
+.app{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar-w);flex:0 0 var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);padding:18px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:18px;}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px;}
+nav.navlist{display:flex;flex-direction:column;gap:3px;}
+.sidebar-foot{margin-top:auto;padding:10px 8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-faint);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;gap:16px;padding:18px 28px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5;flex-wrap:wrap;}
+.topbar-spacer{flex:1;}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--text-muted);}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.crit{background:var(--crit);} .dot.unknown{background:var(--unknown);}
+.topbar-badges{display:flex;align-items:center;gap:10px;}
+
+.content{padding:24px 26px 60px;max-width:1280px;width:100%;margin:0 auto;}
+.view{display:flex;flex-direction:column;gap:22px;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.nav-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+.grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;}
+.report-form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.txn-form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.txn-form label.field{grid-column:span 1;}
+.txn-form label.wide{grid-column:1/-1;}
+.summary-health{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.cat-filter{display:flex;gap:6px;flex-wrap:wrap;}
+.tabbar{display:flex;gap:4px;border-bottom:1px solid var(--border);}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+
+/* Desktop-first internal tool: 1920/1366 are primary, tablet gets a graceful
+   reflow, phone widths are functional but not the design target. */
+@media (max-width:1180px){
+  .report-form{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:900px){
+  .grid-2{grid-template-columns:1fr;}
+}
+@media (max-width:760px){
+  :root{--sidebar-w:76px;}
+  .brand-text,.navlist span:not(.navicon),.sidebar-foot{display:none;}
+  .navlist button{justify-content:center;}
+  .content{padding:16px;}
+}

@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IT Operations Hub - Audit Log</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/pages.css">
+<style>
+  body { margin:0; font-family:'IBM Plex Sans',sans-serif; background:var(--bg,#0f1117); color:var(--text,#fff); }
+  .audit-wrap { max-width:1100px; margin:0 auto; padding:28px 20px; }
+  .audit-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .audit-header h1 { font-size:20px; margin:0; }
+  .back-link { color:var(--accent,#4f7cff); text-decoration:none; font-size:13px; }
+  .filters { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .filters input, .filters select {
+    padding:8px 12px; border-radius:8px; border:1px solid var(--border,#2a2e3a);
+    background:var(--panel,#171a23); color:var(--text,#fff); font-size:13px;
+  }
+  .filters button {
+    padding:8px 16px; border-radius:8px; border:none; background:var(--accent,#4f7cff);
+    color:#fff; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  table { width:100%; border-collapse:collapse; background:var(--panel,#171a23); border-radius:10px; overflow:hidden; }
+  th, td { padding:10px 14px; text-align:left; font-size:13px; border-bottom:1px solid var(--border,#2a2e3a); }
+  th { background:#1e222d; color:#9aa0ad; font-weight:600; text-transform:uppercase; font-size:11px; letter-spacing:0.5px; }
+  tr:hover td { background:#1c202b; }
+  .action-badge { padding:3px 10px; border-radius:6px; font-size:11px; font-weight:600; display:inline-block; }
+  .action-LOGIN { background:#1a3a2a; color:#5fd88a; }
+  .action-LOGIN_FAILED { background:#3a1a1a; color:#ff8a8a; }
+  .action-LOGOUT { background:#2a2a3a; color:#9a9aff; }
+  .empty-state { text-align:center; padding:40px; color:#8a8f9c; font-size:14px; }
+  .stats-row { display:flex; gap:14px; margin-bottom:20px; }
+  .stat-card { background:var(--panel,#171a23); border:1px solid var(--border,#2a2e3a); border-radius:10px; padding:14px 18px; flex:1; }
+  .stat-card .label { font-size:11px; color:#8a8f9c; text-transform:uppercase; margin-bottom:4px; }
+  .stat-card .value { font-size:22px; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="audit-wrap">
+  <div class="audit-header">
+    <h1>Audit Log</h1>
+    <a href="index.html" class="back-link">&larr; Back to Dashboard</a>
+  </div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="filters">
+    <input type="text" id="filterUser" placeholder="Filter by username...">
+    <select id="filterAction">
+      <option value="">All Actions</option>
+      <option value="LOGIN">LOGIN</option>
+      <option value="LOGIN_FAILED">LOGIN_FAILED</option>
+      <option value="LOGOUT">LOGOUT</option>
+    </select>
+    <button id="applyFilters">Apply</button>
+    <button id="clearFilters" style="background:#2a2e3a;">Clear</button>
+  </div>
+
+  <div id="tableWrap">
+    <div class="empty-state">Loading...</div>
+  </div>
+</div>
+
+<script>
+  window.IT_OPS_HUB_API_BASE = '/api';
+</script>
+<script>
+  (async function checkAuth(){
+    try {
+      const res = await fetch(window.IT_OPS_HUB_API_BASE + '/auth/me', { credentials: 'include' });
+      const data = await res.json();
+      if (!data.success) { window.location.href = 'login.html'; return; }
+    } catch (err) { window.location.href = 'login.html'; }
+  })();
+
+  async function doLogout(){
+    try {
+      await fetch(window.IT_OPS_HUB_API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) { /* ignore */ }
+    window.location.href = 'login.html';
+  }
+
+  // ===== Idle Session Timeout (same behavior as dashboard) =====
+  const IDLE_WARNING_MS = 5 * 60 * 1000;
+  const IDLE_LOGOUT_MS  = 6 * 60 * 1000;
+  let idleWarningTimer = null;
+  let idleLogoutTimer = null;
+  let warningShown = false;
+
+  function resetIdleTimers(){
+    clearTimeout(idleWarningTimer);
+    clearTimeout(idleLogoutTimer);
+    if (warningShown) { hideIdleWarning(); }
+    idleWarningTimer = setTimeout(showIdleWarning, IDLE_WARNING_MS);
+    idleLogoutTimer = setTimeout(doLogout, IDLE_LOGOUT_MS);
+  }
+
+  function showIdleWarning(){
+    warningShown = true;
+    let overlay = document.getElementById('idleWarningOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'idleWarningOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+      overlay.innerHTML = `
+        <div style="background:#171a23;border:1px solid #3a3f4d;border-radius:14px;padding:32px 36px;max-width:380px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,0.5);">
+          <div style="font-size:34px;margin-bottom:12px;">&#9200;</div>
+          <div style="color:#fff;font-size:17px;font-weight:600;margin-bottom:8px;">Still there?</div>
+          <div style="color:#b0b4c0;font-size:14px;line-height:1.5;margin-bottom:20px;">
+            You've been inactive for a while. For your security, you'll be signed out automatically in a moment.
+          </div>
+          <button id="idleStayBtn" style="width:100%;padding:11px;border:none;border-radius:8px;background:#4f7cff;color:#fff;font-size:14px;font-weight:600;cursor:pointer;">
+            Stay Signed In
+          </button>
+        </div>`;
+      document.body.appendChild(overlay);
+      document.getElementById('idleStayBtn').addEventListener('click', resetIdleTimers);
+    }
+    overlay.style.display = 'flex';
+  }
+
+  function hideIdleWarning(){
+    warningShown = false;
+    const overlay = document.getElementById('idleWarningOverlay');
+    if (overlay) { overlay.style.display = 'none'; }
+  }
+
+  ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(evt => {
+    document.addEventListener(evt, resetIdleTimers, { passive: true });
+  });
+  resetIdleTimers();
+
+  function actionBadge(action){
+    return `<span class="action-badge action-${action}">${action}</span>`;
+  }
+
+  async function loadLogs(){
+    const user = document.getElementById('filterUser').value.trim();
+    const action = document.getElementById('filterAction').value;
+
+    let url = window.IT_OPS_HUB_API_BASE + '/audit/logs?limit=200';
+    if (user) url += '&user=' + encodeURIComponent(user);
+    if (action) url += '&action=' + encodeURIComponent(action);
+
+    const res = await fetch(url, { credentials: 'include' });
+    const json = await res.json();
+    const logs = json.data || [];
+
+    renderStats(logs);
+    renderTable(logs);
+  }
+
+  function renderStats(logs){
+    const total = logs.length;
+    const logins = logs.filter(l => l.action === 'LOGIN').length;
+    const failed = logs.filter(l => l.action === 'LOGIN_FAILED').length;
+    const uniqueUsers = new Set(logs.map(l => l.username)).size;
+
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-card"><div class="label">Total Events</div><div class="value">${total}</div></div>
+      <div class="stat-card"><div class="label">Successful Logins</div><div class="value">${logins}</div></div>
+      <div class="stat-card"><div class="label">Failed Attempts</div><div class="value" style="color:#ff8a8a;">${failed}</div></div>
+      <div class="stat-card"><div class="label">Unique Users</div><div class="value">${uniqueUsers}</div></div>
+    `;
+  }
+
+  function renderTable(logs){
+    const wrap = document.getElementById('tableWrap');
+    if (!logs.length) {
+      wrap.innerHTML = '<div class="empty-state">No audit records found.</div>';
+      return;
+    }
+
+    const rows = logs.map(l => `
+      <tr>
+        <td>${l.id}</td>
+        <td>${l.username}</td>
+        <td>${actionBadge(l.action)}</td>
+        <td>${l.details || ''}</td>
+        <td>${l.timestamp}</td>
+      </tr>
+    `).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Username</th><th>Action</th><th>Details</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById('applyFilters').addEventListener('click', loadLogs);
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    document.getElementById('filterUser').value = '';
+    document.getElementById('filterAction').value = '';
+    loadLogs();
+  });
+
+  loadLogs();
+</script>
+</body>
+</html>

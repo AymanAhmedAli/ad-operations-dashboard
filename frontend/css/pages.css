@@ -1,0 +1,11 @@
+/* Page-specific tweaks that don't belong in the generic component library. */
+
+/* Reports page */
+.report-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:10px;}
+.report-meta b{color:var(--text);}
+.summary-block{display:flex;flex-direction:column;gap:14px;}
+.risk-list{display:flex;flex-direction:column;gap:6px;}
+.risk-item{display:flex;gap:8px;font-size:13px;align-items:flex-start;}
+
+/* Assistant page */
+#assistant-input-row{margin-top:12px;}

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IT Operations Hub - Login</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<style>
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--bg, #0f1117);
+  }
+  .login-box {
+    background: var(--panel, #171a23);
+    border: 1px solid var(--border, #2a2e3a);
+    border-radius: 12px;
+    padding: 40px;
+    width: 380px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+  .login-box h1 {
+    font-size: 20px;
+    margin: 0 0 4px 0;
+    color: var(--text, #fff);
+  }
+  .login-box .sub {
+    color: var(--muted, #8a8f9c);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+  .login-box label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted, #8a8f9c);
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  .login-box input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #2a2e3a);
+    background: var(--bg, #0f1117);
+    color: var(--text, #fff);
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  .login-box button {
+    width: 100%;
+    margin-top: 24px;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent, #4f7cff);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .login-box button:hover { opacity: 0.9; }
+  .login-box button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error-msg {
+    background: #3a1a1a;
+    border: 1px solid #7a2a2a;
+    color: #ff8a8a;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 16px;
+    display: none;
+  }
+  .brand-logo {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .brand-logo .mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--accent, #4f7cff);
+    color: white;
+    font-weight: 700;
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+<div class="login-box">
+  <div class="brand-logo"><span class="mark">IT</span></div>
+  <h1>IT Operations Hub</h1>
+  <div class="sub">Sign in with your Active Directory account</div>
+
+  <form id="loginForm">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" placeholder="Enter your username" autocomplete="username" required>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+
+    <button type="submit" id="loginBtn">Sign In</button>
+
+    <div class="error-msg" id="errorMsg"></div>
+  </form>
+</div>
+
+<script>
+  const API_BASE = window.IT_OPS_HUB_API_BASE || "/api";
+  const form = document.getElementById("loginForm");
+  const errorMsg = document.getElementById("errorMsg");
+  const loginBtn = document.getElementById("loginBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorMsg.style.display = "none";
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Signing in...";
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const res = await fetch(API_BASE + "/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        sessionStorage.setItem("ithub_user", JSON.stringify({
+          username: data.username,
+          displayName: data.displayName,
+          email: data.email
+        }));
+        window.location.href = "index.html";
+      } else {
+        errorMsg.textContent = data.error || "Login failed.";
+        errorMsg.style.display = "block";
+      }
+    } catch (err) {
+      errorMsg.textContent = "Cannot reach server. Check your connection.";
+      errorMsg.style.display = "block";
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Sign In";
+    }
+  });
+</script>
+
+<script>
+  window.IT_OPS_HUB_API_BASE = "/api";
+</script>
+</body>
+</html>
