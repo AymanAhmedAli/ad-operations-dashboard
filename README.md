@@ -1,5 +1,7 @@
 # IT Operations Dashboard — AD Integration, Authentication & Audit Logging
 
+**By Ayman Ahmed** — [GitHub](https://github.com/AymanAhmedAli) | [LinkedIn](https://www.linkedin.com/in/aymanahmedali/)
+
 A PowerShell/Pode backend + vanilla JS frontend for a real-time IT operations
 dashboard, integrated with a live Active Directory domain controller. Built
 as a hands-on project to learn AD-based authentication, session security,
@@ -94,3 +96,8 @@ so both are served under a single origin — set the backend address in
 ## License
 
 MIT
+
+
+---
+
+*Built by Ayman Ahmed — IT Specialist | Network Security*
