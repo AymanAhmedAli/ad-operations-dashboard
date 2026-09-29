@@ -93,11 +93,9 @@ so both are served under a single origin — set the backend address in
 - Not production-hardened as-is: see comments in `AuditLog.Service.psm1`
   about audit log storage needing access control before real deployment.
 
-## License
+## 👤 Author
 
-MIT
+**Ayman Ahmed** — IT Specialist | Network Security
 
-
----
-
-*Built by Ayman Ahmed — IT Specialist | Network Security*
+[![GitHub](https://img.shields.io/badge/GitHub-AymanAhmedAli-black?style=flat&logo=github)](https://github.com/AymanAhmedAli)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/aymanahmedali/)
